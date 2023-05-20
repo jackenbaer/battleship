@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MARINE COMMANDER 2000</title>
+  <style>
+
+    .main-container {
+      display: flex;
+    }
+
+	
+    .opponentField {
+      display: grid;
+      background-color: black;
+      grid-template-columns: repeat(10, 50px);
+      grid-template-rows: repeat(10, 50px);
+      gap: 1px;
+      width: 509px;
+      height: 509px;
+      border: 3px solid black;
+    }
+    .opponentCell {
+      width: 50px;
+	  background-color: green;
+      height: 50px;
+    }
+    .field {
+      display: grid;
+	  background-color: black;
+      grid-template-columns: repeat(10, 50px);
+      grid-template-rows: repeat(10, 50px);
+      gap: 1px;
+      width: 509px;
+      height: 509px;
+      border: 3px solid black;
+    }
+    .cell {
+      width: 50px;
+	  background-color: white;
+      height: 50px;
+    }
+
+    .shipFive {
+      position: absolute;
+      background-color: blue;
+      width: 50px;
+      height: 254px;
+      cursor: move;
+      z-index: 10;
+    }
+
+
+    .shipFour {
+      position: absolute;
+      background-color: blue;
+      width: 50px;
+      height: 203px;
+      cursor: move;
+      z-index: 10;
+
+
+    }
+	.shipThreeA {
+      position: absolute;
+      background-color: blue;
+      width: 50px;
+      height: 152px;
+      cursor: move;
+      z-index: 10;
+
+
+    }
+	.shipThreeB {
+      position: absolute;
+      background-color: blue;
+      width: 50px;
+      height: 152px;
+      cursor: move;
+      z-index: 10;
+
+
+    }
+	.shipTwo {
+      position: absolute;
+			background-color: blue;
+      cursor: move;
+      z-index: 10;
+			width: 50px;
+    	height: 101px;
+    }
+
+
+    .side-div {
+	  position: relative;
+	  display: flex;
+      flex-wrap: wrap;
+      gap: 1px; 
+      width: 200px;
+      height: 407px;
+      background-color: lightblue;
+      margin-left: 20px;
+    }
+
+
+  </style>
+</head>
+<body>
+  <div class="main-container">
+
+
+  <div class="field" id = "field"> 
+	<script>
+
+		const cellContainer = document.getElementById("field");
+
+		for (let row = 1; row <= 10; row++) {
+			for (let col = 1; col <= 10 ; col++){
+				const cell = document.createElement("div");
+				cell.classList.add("cell");
+				cell.dataset.row = row;
+        		cell.dataset.col = col;
+				cellContainer.appendChild(cell);
+			}
+		}
+	</script>	
+	</div>
+
+	<div class="side-div">
+
+		<div class="shipFive"></div>
+		<div class="shipFour" style="left: 60px; top: 0;"></div>
+		<div class="shipThreeA" style="left: 120px; top: 0;"></div>
+		<div class="shipTwo" style="left: 0; top: 264px;"></div>
+		<div class="shipThreeB" style="left: 60px; top: 213px;"></div>
+	</div>
+
+	<button id="finishedPlacement">Finished placement</button>
+
+
+</div>
+  <div class="opponentField" id = "opponentField"> 
+	<script>
+
+		const opponentCellContainer = document.getElementById("opponentField");
+
+		for (let row = 1; row <= 10; row++) {
+			for (let col = 1; col <= 10 ; col++){
+				const cell = document.createElement("div");
+				cell.classList.add("opponentCell");
+				cell.dataset.row = row;
+        		cell.dataset.col = col;
+				opponentCellContainer.appendChild(cell);
+			}
+		}
+	</script>	
+</div>
+  <script src="script.js"></script>
+</div>
+  <h3 id="player_b_url"></h3>
+<div>
+
+</body>
+</html>
