@@ -1,23 +1,15 @@
 use serde::{Deserialize, Serialize};
 
+use actix_cors::Cors;
+use actix_web::{web, App, HttpResponse, HttpServer, Responder, Result};
+use futures::StreamExt;
 use hex;
 use rand::rngs::OsRng;
 use rand::RngCore;
-use actix_cors::Cors;
-use actix_web::{web, App, HttpResponse, HttpServer, Responder,Result};
 use std::collections::{HashMap, HashSet};
 use tokio::sync::{broadcast, RwLock};
-use futures::{StreamExt};
-
-
-
 
 use futures::stream::unfold;
-
-
-
-
-
 
 #[derive(Debug, Deserialize)]
 pub struct ShotRequest {
@@ -28,10 +20,10 @@ pub struct ShotRequest {
 
 #[derive(Debug, Serialize, Clone)]
 pub struct ShotResponse {
-		shot: [u32;2],
+    shot: [u32; 2],
     hit: bool,
     sunk: bool,
-		length: usize, 
+    length: usize,
     fleet_destroyed: bool,
 }
 
@@ -194,8 +186,8 @@ async fn new_game(data: web::Data<RwLock<HashMap<String, Game>>>) -> impl Respon
     let game_id = generate_token();
     let player_id = generate_token();
 
-		let (player_a_events, _) = broadcast::channel::<ShotResponse>(10);
-		let (player_b_events, _) = broadcast::channel::<ShotResponse>(10);
+    let (player_a_events, _) = broadcast::channel::<ShotResponse>(10);
+    let (player_b_events, _) = broadcast::channel::<ShotResponse>(10);
 
     let game = Game {
         player_a: PlayerInfo {
@@ -212,7 +204,7 @@ async fn new_game(data: web::Data<RwLock<HashMap<String, Game>>>) -> impl Respon
             hits: Default::default(),
             misses: Default::default(),
             //radar: Default::default(),
-            events: player_b_events ,
+            events: player_b_events,
         },
         on_move: player_id.clone(),
     };
@@ -293,7 +285,7 @@ fn i_am_player_a(game: &Game, player_id: &str) -> Result<bool, &'static str> {
     }
 }
 
-fn is_hit(position: &[Vec<[u32; 2]>; 5], s: &[u32; 2]) -> (bool, usize){
+fn is_hit(position: &[Vec<[u32; 2]>; 5], s: &[u32; 2]) -> (bool, usize) {
     for ship in position {
         for &part in ship {
             if part == *s {
@@ -301,7 +293,7 @@ fn is_hit(position: &[Vec<[u32; 2]>; 5], s: &[u32; 2]) -> (bool, usize){
             }
         }
     }
-    return (false, 0) ;
+    return (false, 0);
 }
 
 fn is_sunk(position: &[Vec<[u32; 2]>; 5], hits: &Vec<[u32; 2]>, s: &[u32; 2]) -> bool {
@@ -328,7 +320,7 @@ async fn shot(
     game_id: web::Path<String>,
     data: web::Data<RwLock<HashMap<String, Game>>>,
     req: web::Json<ShotRequest>,
-)  -> HttpResponse {
+) -> HttpResponse {
     let shot_req = req.into_inner();
     let mut hashmap = data.write().await;
     if let Some(game) = hashmap.get_mut(&game_id.into_inner()) {
@@ -338,7 +330,7 @@ async fn shot(
         let response;
         match i_am_player_a(&game, &shot_req.player_id) {
             Ok(is_player_a) => {
-                let (hit, sunk, fleet_destroyed, l );
+                let (hit, sunk, fleet_destroyed, l);
 
                 if is_player_a {
                     (hit, l) = is_hit(&game.player_b.position, &[shot_req.x, shot_req.y]);
@@ -357,19 +349,18 @@ async fn shot(
                     fleet_destroyed =
                         is_fleet_destroyed(&game.player_b.position, &game.player_b.hits);
                     game.on_move = game.player_b.id.clone();
-										response = ShotResponse {
-											shot : [shot_req.x, shot_req.y],
-											hit: hit,
-											sunk: sunk,
-											length: l,
-											fleet_destroyed: fleet_destroyed,
-									};
-									match game.player_b.events.send(response.clone()) {
-										Ok(_) => {}, // Successfully sent the message, do nothing
-										Err(e) => println!("Failed to send the message: {:?}", e), // Handle the error here
-								}
-								return HttpResponse::Ok().json(response);
-
+                    response = ShotResponse {
+                        shot: [shot_req.x, shot_req.y],
+                        hit: hit,
+                        sunk: sunk,
+                        length: l,
+                        fleet_destroyed: fleet_destroyed,
+                    };
+                    match game.player_b.events.send(response.clone()) {
+                        Ok(_) => {} // Successfully sent the message, do nothing
+                        Err(e) => println!("Failed to send the message: {:?}", e), // Handle the error here
+                    }
+                    return HttpResponse::Ok().json(response);
                 } else {
                     (hit, l) = is_hit(&game.player_a.position, &[shot_req.x, shot_req.y]);
                     if hit {
@@ -389,32 +380,28 @@ async fn shot(
                     game.on_move = game.player_a.id.clone();
                     println!("{:?}", hit);
                     println!("{:?}", sunk);
-										response = ShotResponse {
-											shot : [shot_req.x, shot_req.y],
-											hit: hit,
-											sunk: sunk,
-											length: l , 
-											fleet_destroyed: fleet_destroyed,
-									};
+                    response = ShotResponse {
+                        shot: [shot_req.x, shot_req.y],
+                        hit: hit,
+                        sunk: sunk,
+                        length: l,
+                        fleet_destroyed: fleet_destroyed,
+                    };
 
-									match game.player_a.events.send(response.clone()) {
-										Ok(_) => {}, // Successfully sent the message, do nothing
-										Err(e) => println!("Failed to send the message: {:?}", e), // Handle the error here
-								}
-								return HttpResponse::Ok().json(response);
-
+                    match game.player_a.events.send(response.clone()) {
+                        Ok(_) => {} // Successfully sent the message, do nothing
+                        Err(e) => println!("Failed to send the message: {:?}", e), // Handle the error here
+                    }
+                    return HttpResponse::Ok().json(response);
                 }
-
             }
             Err(err) => {
                 println!("error {:?}", err);
-								return HttpResponse::NotFound().finish();
-							}
+                return HttpResponse::NotFound().finish();
+            }
         }
-        
     }
     return HttpResponse::NotFound().finish();
-
 }
 
 #[derive(Clone)]
@@ -422,95 +409,89 @@ struct AppState {
     clients: web::Data<RwLock<HashMap<String, Game>>>,
 }
 
-
 #[derive(Debug, Serialize)]
 struct MyData {
     field1: String,
     field2: i32,
 }
 
+async fn events(
+    data: web::Data<RwLock<HashMap<String, Game>>>,
+    info: web::Path<(String, String)>,
+) -> Result<HttpResponse, actix_web::Error> {
+    println!("eventsnnnnnnnnnnn");
 
-async fn events(data: web::Data<RwLock<HashMap<String, Game>>>, info: web::Path<(String, String)>) -> Result<HttpResponse, actix_web::Error> {
-	println!("eventsnnnnnnnnnnn");
+    let game_id = &info.0;
+    let player_id = &info.1;
 
-	let game_id = &info.0;
-  let player_id = &info.1;
+    let mut hashmap = data.write().await;
+    let game;
+    let receiver: Option<broadcast::Receiver<ShotResponse>>;
+    if let Some(g) = hashmap.get_mut(game_id) {
+        game = g;
+    } else {
+        println!("game not found ");
+        return Ok(HttpResponse::NotFound().finish());
+    }
 
-	let mut hashmap = data.write().await;
-	let game;
-	let receiver: Option<broadcast::Receiver<ShotResponse>>;
-	if let Some(g) = hashmap.get_mut(game_id) {
-			game  = g ;
-	}else{
-		println!("game not found ");
-		return Ok(HttpResponse::NotFound().finish());
-	}
+    if game.player_a.id == player_id.to_string() {
+        receiver = Some(game.player_a.events.subscribe());
+    } else if game.player_b.id == player_id.to_string() {
+        receiver = Some(game.player_b.events.subscribe());
+    } else {
+        println!("player not found ");
+        return Ok(HttpResponse::NotFound().finish());
+    }
 
-	if game.player_a.id == player_id.to_string(){ 
-			receiver = Some(game.player_a.events.subscribe());
-	} else if game.player_b.id == player_id.to_string(){ 
-			receiver = Some(game.player_b.events.subscribe());
-	} else {
-		println!("player not found ");
-			return Ok(HttpResponse::NotFound().finish());
-	}
+    let receiver = receiver.expect("No receiver initialized");
 
-	let receiver = receiver.expect("No receiver initialized");
+    let stream = unfold(receiver, |mut receiver| async move {
+        match receiver.recv().await {
+            Ok(msg) => Some((
+                Ok(web::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::to_string(&msg).unwrap()
+                ))),
+                receiver,
+            )),
+            Err(broadcast::error::RecvError::Lagged(_)) => {
+                // Handle the case where we couldn't keep up with the message rate and lost some messages.
+                // You may want to return an error to the client here.
+                let error = actix_web::error::ErrorInternalServerError("Message lagged");
+                Some((Err(error), receiver))
+            }
+            Err(broadcast::error::RecvError::Closed) => None,
+        }
+    })
+    .boxed();
 
-
-
-		let stream = unfold(receiver, |mut receiver| async move {
-				match receiver.recv().await {
-						Ok(msg) => {
-								Some((Ok(web::Bytes::from(format!("data: {}\n\n", serde_json::to_string(&msg).unwrap()))), receiver))
-						},
-						Err(broadcast::error::RecvError::Lagged(_)) => {
-								// Handle the case where we couldn't keep up with the message rate and lost some messages.
-								// You may want to return an error to the client here.
-								let error = actix_web::error::ErrorInternalServerError("Message lagged");
-								Some((Err(error), receiver))
-						},
-						Err(broadcast::error::RecvError::Closed) => None,
-				}
-			
-	}).boxed();
-
-
-	return Ok(HttpResponse::Ok()
-			.append_header(("content-type", "text/event-stream"))
-			.streaming(stream));
+    return Ok(HttpResponse::Ok()
+        .append_header(("content-type", "text/event-stream"))
+        .streaming(stream));
 }
 
-
-
-
-
 #[actix_web::main]
- async fn main() -> std::io::Result<()> {
+async fn main() -> std::io::Result<()> {
     let data = web::Data::new(RwLock::new(HashMap::new()));
     let state = AppState {
         clients: data.clone(),
     };
 
-
     HttpServer::new(move || {
-			let cors = Cors::default()
-			.allow_any_origin()
-			.allow_any_method()
-			.allow_any_header()
-			.supports_credentials();
-
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
+            .supports_credentials();
 
         App::new()
-						.wrap(cors)
+            .wrap(cors)
             .app_data(state.clients.clone())
             .route("/shot/{game_id}", web::post().to(shot))
             .route("/new_game/", web::get().to(new_game))
-						.route("/events/{game_id}/{player_id}", web::get().to(events))
+            .route("/events/{game_id}/{player_id}", web::get().to(events))
             .route("/join_game/{game_id}", web::get().to(join_game))
             .route("/position/{game_id}", web::post().to(position))
-
-
     })
     .bind("2a01:4f8:c0c:9f3e::2:5000")?
     .run()
