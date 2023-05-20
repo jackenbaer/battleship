@@ -6,7 +6,7 @@ The principal objective was to create a functional online game complete with sou
 
 You can contribute to the development of this project by visiting the Issues page and addressing some of the listed features that have yet to be implemented. 
 
-Experience a quick game session [here](https://battleship.jackenbaer.com). 
+Experience a quick game session [here](http://battleship.jackenbaer.com). 
 
 # Technologies Utilized
 - JavaScript 
